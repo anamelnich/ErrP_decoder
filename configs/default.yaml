@@ -1,0 +1,70 @@
+# Default configuration for ErrP_decoder
+
+# General Information
+
+# 64 channels
+# eeg_channels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+# 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 
+# 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
+# eog_channels: [64, 65, 66, 67]
+# trigger_channel: 68
+
+# 32 channels
+eeg_channels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+eog_channels: [32,33,34]
+trigger_channel: 35
+temp_window: [0.1, 0.5]
+trigger_codes: [100, 104, 108] # [move, pos, neg]
+
+# Spectral Filter
+spectral_filter:
+  freqs: [1, 30]
+  order: 2
+EOG:
+  spectral_filter:
+    freqs: [1, 10]
+    order: 2
+
+# Balancing
+balance_iscompute: true
+
+# ROI Selection
+roi: "P/PO"   # Options: None, P/PO
+fisher_iscompute: false
+
+# Baseline Correction
+baseline_iscompute: true
+baseline_window: [-0.2, 0]
+
+# Spatial Filter
+spatial_filter:
+  type: "xDAWN"   # Options: CCA, xDAWN, None
+  n_comp: 2
+
+# Power Spectral Density
+psd:
+  is_compute: false
+  diff_iscompute: false
+  type: "stockwell"   # Options: stockwell
+  roi: "all"          # Options: lIFG, rIFG, midfrontal, all
+  freq_range: [8, 9, 10, 11, 12, 13, 14]
+
+# Resampling Ratio
+resample:
+  is_compute: true
+
+# Classifier
+classify:
+  is_normalize: true
+  normtype: "zscore"   # Options: minmax, zscore
+  reduction:
+    type: "r2"         # Options: pca, lasso, r2, None
+    numfeats: 30
+    pcaprct: 95
+  type: "linear"       # Options: linear, diaglinear, SVM
+
+data_path: "../../data/"
+filter:
+  order: 4
+  freqs: [0.1, 30] 

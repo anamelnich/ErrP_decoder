@@ -1,0 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.class
+
+# C extensions
+*.so
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+*.env
+
+# VSCode and PyCharm settings
+.vscode/
+.idea/
+
+# MacOS system files
+.DS_Store
+
+# Data files (add your data folder here)
+data/
+*.gdf
+*.edf
+*.bdf
+*.mat
+
+# Output files
+*.log
+*.out
+*.h5
+*.hdf5
+*.csv
+*.tsv
+*.npy
+*.npz
+
+# Test and coverage outputs
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Misc
+*.bak
+*.swp
+*.tmp
