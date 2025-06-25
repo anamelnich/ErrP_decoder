@@ -278,21 +278,65 @@ def epoch_data(data, params, trigger):
         raise ValueError("No valid epochs found for the given triggers. Cannot create epochs.")
 
     # --- Vectorized Epoching ---
-    epoch_indices = trig_pos[:, np.newaxis] + epoch_samples
+    epoch_indices = trig_pos[:, np.newaxis] + epoch_samples # shape n_epochs x n_samples
 
     if epoch_indices.min() < 0 or epoch_indices.max() >= data.shape[0]:
         raise ValueError("Epoch window extends beyond data boundaries for some triggers.")
 
-    # Index data array, shape: (n_epochs, n_samples_per_epoch, n_channels)
-    epoched_data = data[epoch_indices, :]
+    epoched_data = data[epoch_indices, :] # shape n_epochs x n_samples x n_channels
 
-    # Transpose to match MATLAB's output: (n_samples_per_epoch, n_channels, n_epochs)
-    epoched_data = np.transpose(epoched_data, (1, 2, 0))
-
-    # --- Create other epoch attributes ---
     epoch_labels = np.array(trig_typ)
 
     return epoched_data, epoch_labels
- 
+
+def balance_runs(epoched_data, epoch_labels, random_state=None):
+    """
+    Balance the number of no feedback (label=0) and negative feedback (label=1) trials.
+    Downsamples label 0 trials at random to match the number of label 1 trials.
+
+    Parameters
+    ----------
+    epoched_data : np.ndarray
+        Epoched data, shape (time_samples, channels, n_epochs)
+    epoch_labels : np.ndarray
+        Labels for each epoch, shape (n_epochs,)
+    random_state : int or None
+        Random seed for reproducibility
+
+    Returns
+    -------
+    balanced_data : np.ndarray
+        Balanced epoched data
+    balanced_labels : np.ndarray
+        Balanced labels
+    """
+    if not isinstance(epoched_data, np.ndarray) or epoched_data.ndim != 3:
+        raise ValueError("'epoched_data' must be a 3D numpy array.")
+    if not isinstance(epoch_labels, np.ndarray) or epoch_labels.ndim != 1:
+        raise ValueError("'epoch_labels' must be a 1D numpy array.")
+    if epoched_data.shape[2] != epoch_labels.shape[0]:
+        raise ValueError("Number of epochs in 'epoched_data' and 'epoch_labels' must match.")
+
+    rng = np.random.default_rng(random_state) # if random_state = None --> random seed (not reproducible)
+
+    idx_0 = np.where(epoch_labels == 0)[0]
+    idx_1 = np.where(epoch_labels == 1)[0]
+
+    n_1 = len(idx_1)
+    n_0 = len(idx_0)
+
+    if n_1 == 0 or n_0 == 0:
+        raise ValueError("Both label 0 and label 1 must be present in the data.")
+
+    idx_0_balanced = rng.choice(idx_0, size=n_1, replace=False)
+    # Combine and shuffle indices
+    balanced_indices = np.concatenate([idx_0_balanced, idx_1])
+    balanced_indices = np.sort(balanced_indices)
+
+    balanced_data = epoched_data[:, :, balanced_indices]
+    balanced_labels = epoch_labels[balanced_indices]
+
+    return balanced_data, balanced_labels
+
 
 
