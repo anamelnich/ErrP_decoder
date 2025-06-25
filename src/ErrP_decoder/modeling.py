@@ -5,7 +5,7 @@ from sklearn.cross_decomposition import CCA
 from scipy import signal
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-def get_cca_spatialfilter(epoch_data, epoch_labels, n_components=None):
+def get_cca_spatialfilter(epoch_data, epoch_labels, params, n_components=None):
     """
     Compute CCA spatial filter for EEG data.
     
@@ -17,12 +17,17 @@ def get_cca_spatialfilter(epoch_data, epoch_labels, n_components=None):
         Class labels for each trial
     n_components : int, optional
         Number of CCA components to compute. If None, uses min(channels, n_classes)
+    params : dict, optional
+        If provided and contains 'epoch_roi', restricts CCA computation to the specified time window (sample indices)
     
     Returns:
     --------
     spatial_filter : array, shape (channels, n_components)
         CCA spatial filter weights
     """
+
+    if params is None or 'epoch_roi' not in params or params['epoch_roi'] is None:
+        raise ValueError("params must contain 'epoch_roi'")
 
     if epoch_data.shape[2] != len(epoch_labels):
         raise ValueError("Number of trials in data doesn't match number of labels")
@@ -34,7 +39,9 @@ def get_cca_spatialfilter(epoch_data, epoch_labels, n_components=None):
     # Set number of components if not specified
     if n_components is None:
         n_components = min(epoch_data.shape[1], len(classes))
-    
+
+    epoch_data = epoch_data[params['epoch_roi'], :, :]
+
     concat_data = []
     concat_ga = []
 
@@ -172,7 +179,7 @@ def compute_decoder(training_data, training_labels, params):
         raise ValueError("params must contain 'spatial_filter' with 'n_comp' key")
     
     # Compute CCA spatial filter
-    spatial_filter = get_cca_spatialfilter(training_data, training_labels, 
+    spatial_filter = get_cca_spatialfilter(training_data, training_labels,params, 
                                          n_components=params['spatial_filter']['n_comp'])
     
     # Apply spatial filter
@@ -198,7 +205,7 @@ def compute_decoder(training_data, training_labels, params):
     
     return decoder
 
-def single_classification(decoder, test_data, test_labels=None):
+def single_classification(decoder, test_data):
     """
     Run inference using the trained decoder.
     
@@ -208,40 +215,67 @@ def single_classification(decoder, test_data, test_labels=None):
         Dictionary containing trained LDA model, spatial filter, and parameters
     test_data : np.ndarray, shape (samples, channels, trials)
         Test EEG data
-    test_labels : np.ndarray, shape (trials,), optional
-        True labels for evaluation (if provided)
     
     Returns:
     --------
-    predictions : np.ndarray, shape (trials,)
-        Predicted class labels
-    probabilities : np.ndarray, shape (trials, n_classes), optional
-        Prediction probabilities (if test_labels provided)
+    posteriors : np.ndarray, shape (trials, n_classes)
+        Posterior probabilities for each class
     """
-    # Extract components from decoder
     lda = decoder['lda']
     spatial_filter = decoder['spatial_filter']
     params = decoder['params']
-    
-    # Apply same preprocessing pipeline as training
-    # Step 1: Apply spatial filter
+
     filtered_data = apply_spatial_filter(test_data, spatial_filter)
-    
-    # Step 2: Resample data
+
     resampled = resample_epochs(filtered_data, params)
-    
-    # Step 3: Reshape for LDA (same as training)
+
     n_samples, n_comp, n_trials = resampled.shape
     X = resampled.reshape(n_samples * n_comp, n_trials).T  # shape: (trials, features)
+
+    posteriors = lda.predict_proba(X)
+
+    return posteriors
+
+def leave_one_run_out_cv(train_data, test_data, params):
+    """
+    Perform leave-one-run-out cross-validation.
     
-    # Step 4: Make predictions
-    predictions = lda.predict(X)
+    Parameters
+    ----------
+    train_data : dict
+        Dictionary with keys:
+            - 'data': np.ndarray of shape (samples, channels, trials)
+            - 'labels': np.ndarray of shape (trials,)
+            - 'run': np.ndarray of shape (trials,), indicating run ID
+    test_data : dict
+        Same structure as train_data 
+    params : dict
+        Configuration dictionary passed to decoder
     
-    if test_labels is not None:
-        # Return predictions and probabilities for evaluation
-        probabilities = lda.predict_proba(X)
-        return predictions, probabilities
-    else:
-        # Return only predictions
-        return predictions
+    Returns
+    -------
+    posteriors : np.ndarray
+        Posterior probabilities, shape (n_trials, n_classes)
+    """
+    n_trials = len(test_data['labels'])
+    n_classes = len(np.unique(train_data['labels']))
+    posteriors = np.full((n_trials, n_classes), np.nan)
+    unique_files = np.unique(train_data['run'])
+
+    for i_file in unique_files:
+        train_mask = train_data['run'] != i_file
+        test_mask = test_data['run'] == i_file
+
+        decoder = compute_decoder(
+            train_data['data'][:, :, train_mask],
+            train_data['labels'][train_mask],
+            params
+        )
+
+        posteriors[test_mask, :] = single_classification(
+            decoder,
+            test_data['data'][:, :, test_mask]
+        )
+
+    return posteriors
 
