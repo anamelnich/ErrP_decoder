@@ -42,7 +42,8 @@ def evaluate_classifier(labels, posteriors):
     # optimal threshold by maximizing Youden's J = TPR - FPR
     youden = tpr - fpr
     idx_opt = np.argmax(youden)
-    opt_thr = thr[idx_opt]
+    # opt_thr = thr[idx_opt]
+    opt_thr = 0.5
     opt_fpr = fpr[idx_opt]
     opt_tpr = tpr[idx_opt]
 
