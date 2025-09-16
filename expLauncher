@@ -1,0 +1,90 @@
+#!/bin/bash
+sudo modprobe -r lp
+sudo chmod 777 /dev/parport0
+sudo chmod 777 /dev/ttyACM0
+read -p "subjectID: " subID
+read -p "[c] calibration or [d] decoding? " mode
+read -p "run: " run
+
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )" #${BASH_SOURCE[0]} finds path to currently executing script and >/dev/null discards any output from cd
+echo $dir
+
+
+
+#########################################################################
+if [ "$mode" = "c" ]
+ 	then
+ 	echo "
+----------------------------------
+----> Calibration Mode selected <-----
+----------------------------------
+"
+
+# Open GDF and log files
+basename=$dir/data/$subID/$subID"_"$run
+foldername=$dir/data/$subID
+gdffilename=$basename".gdf"
+logfilename=$basename".log"
+
+mkdir $basename/
+
+echo $gdffilename
+echo $logfilename
+cl_rpc openxdf $gdffilename $logfilename ""
+
+# Run Python Interface
+sleep 3
+(
+  cd RoboTaxi
+  CONTROLLER=XBOX python record_feedback_online_tamer_noisy.py --agent tamer-online-noisy --lr 0.01 --lr-decay 0.998 --epsilon-train 0.2 --epsilon-test 0.1 --weight w2 --num-episodes 3 --negative-feedback-only --feedback-accuracy 0.7 --seeds $run --calibration
+)
+# Close the GDF file
+sleep 3
+cl_rpc closexdf
+mv $basename.* $basename/
+
+mkdir -p $foldername
+mv $basename $foldername
+
+#########################################################################
+elif [ "$mode" = "d" ]
+ 	then
+ 	echo "
+----------------------------------
+----> Training Mode selected <-----
+----------------------------------
+"
+
+# Open GDF and log files
+basename=$dir/data/$subID/$subID"_"$run"_decoding"
+foldername=$dir/data/$subID
+gdffilename=$basename".gdf"
+logfilename=$basename".log"
+
+mkdir $basename/
+
+echo $gdffilename
+echo $logfilename
+cl_rpc openxdf $gdffilename $logfilename ""
+
+# Run ndf file
+sleep 2
+# gnome-terminal -e "./matlabLauncher" --title "ErrP Detection" #gnome-terminal -e executes command in quotes in new terminal window
+gnome-terminal --title "ErrP Detection" -- bash -c "./matlabLauncher; echo 'Press Enter to close...'; read"
+
+# Run Python Interface
+sleep 10
+(
+  cd RoboTaxi
+  python record_feedback_online_tamer_noisy.py --agent tamer-online-noisy --lr 0.01 --lr-decay 0.998 --epsilon-train 0.2 --epsilon-test 0.1 --weight w2 --num-episodes 3 --negative-feedback-only --feedback-accuracy 1.0 --seeds $run --BCI
+)
+# Close the GDF file
+sleep 3
+cl_rpc closexdf
+mv $basename.* $basename/
+
+mkdir -p $foldername
+mv $basename $foldername
+
+
+fi #ends the if statement 
