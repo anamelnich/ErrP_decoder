@@ -227,8 +227,28 @@ if strcmp(params.classify.type,'SVM')
     model = @(Xnew) predict(modelRaw, Xnew);
     
 elseif any(strcmp(params.classify.type, {'linear','diaglinear'}))
-    modelRaw = fitcdiscr(classifierEpochs', trainLabels, ...
-    'Prior', 'uniform', 'DiscrimType', params.classify.type);
+    y = trainLabels(:);
+    u = unique(y);
+    if ~all(ismember(u,[0 1]))
+        % Map the two distinct labels to 0/1 deterministically
+        assert(numel(u)==2, 'Expecting exactly 2 classes');
+        y_mapped = zeros(size(y));
+        y_mapped(y==u(2)) = 1;  % larger label -> 1
+        y = y_mapped;
+    end
+
+    % ----- Class-balanced weights: sum(weights per class) = 0.5 each -----
+    n0 = sum(y==0);
+    n1 = sum(y==1);
+    assert(n0>0 && n1>0, 'Both classes must be present');
+
+    wts = ones(size(y));
+    wts(y==0) = 0.7 / n0;
+    wts(y==1) = 0.3 / n1;
+    modelRaw = fitcdiscr(classifierEpochs', y, ...
+    'Prior', 'uniform', 'DiscrimType', params.classify.type, 'Weights', wts);
+%     modelRaw = fitcdiscr(classifierEpochs', y, ...
+%     'DiscrimType', params.classify.type, 'Prior','Uniform');
 
     % Transform LDA output to probability using a sigmoid fit
     w = modelRaw.Coeffs(2,1).Linear;

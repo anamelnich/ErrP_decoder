@@ -45,7 +45,7 @@ function params = setParams(header)
     %%%%%%%%%%%%%%%
     %% Balancing %%
     %%%%%%%%%%%%%%%
-    params.balance_iscompute = true;
+    params.balance_iscompute = false;
 
     %%%%%%%%%%%%%%%%%%%%
     %% ROI Selection %%%
@@ -63,7 +63,7 @@ function params = setParams(header)
     %% Spatial Filter %%
     %%%%%%%%%%%%%%%%%%%%
     params.spatialFilter.type = 'CCA';  % {'CCA','xDAWN','None'}
-    params.spatialFilter.time = round(0.2*params.fsamp)+1:round(0.9*params.fsamp);
+    params.spatialFilter.time = round(0.2*params.fsamp)+1:round(0.8*params.fsamp);
     params.spatialFilter.time = params.spatialFilter.time + params.epochOnset;
     params.spatialFilter.nComp = 3;
 
@@ -93,7 +93,7 @@ function params = setParams(header)
     %%%%%%%%%%%%%%%%%%%%%%
     params.resample.is_compute = true;
     params.resample.ratio = round(params.fsamp / 64);
-    params.resample.time = round(0.2*params.fsamp)+1:round(0.9*params.fsamp);
+    params.resample.time = round(0.2*params.fsamp)+1:round(0.8*params.fsamp);
     params.resample.time = params.resample.time + params.epochOnset;
 
     %%%%%%%%%%%%%%%%
@@ -102,7 +102,7 @@ function params = setParams(header)
     params.classify.is_normalize = true;
     params.classify.normtype = 'zscore'; % {'minmax','zscore'}
     params.classify.reduction.type = 'r2'; % {'pca', 'lasso', 'r2','None'} 
-    params.classify.reduction.numfeats = 20;
+    params.classify.reduction.numfeats = 40;
     params.classify.reduction.pcaprct = 95;
     params.classify.type = 'linear'; % {'linear', 'diaglinear','SVM'}
       

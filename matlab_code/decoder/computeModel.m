@@ -64,6 +64,7 @@ decoder.threshold = performance.threshold;
 decoder.performance = performance;
 decoder.subjectID = subjectID;
 decoder.datetime = datetime;
+decoder.cfg = cfg;
 decoder.onlinePosteriors = [];
 disp(' ');
 disp('Decoder Updated at');

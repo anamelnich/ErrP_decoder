@@ -44,13 +44,19 @@ for iter = 1:nIter
     for fileIdx = 1:nFiles
         trainIdx = balancedData.file_id ~= fileIdx;
         testIdx  = data.file_id == fileIdx;
-        % Train decoder for right-distractor classification
+
         [decoderR, ~] = computeDecoder(...
             balancedData.data(:,:,trainIdx), ...
             balancedData.labels(trainIdx), cfg);
-        % Classify held-out trials
         post(testIdx) = singleClassification(decoderR, ...
             data.data(:,:,testIdx));
+
+%             decoderR = computeDecoderRieman(...
+%                 balancedData.data(:,:,trainIdx), ...
+%                 balancedData.labels(trainIdx), cfg);
+%             [Ytest, posteriors] = singleClassificationRieman(decoderR, ...
+%                 data.data(:,:,testIdx));
+%             post(testIdx) = posteriors(:,2);
     end
     data.posteriors = post;
 
@@ -59,11 +65,12 @@ for iter = 1:nIter
         data.posteriors, 1, 'Prior','uniform', 'xCrit','reca','yCrit','prec');
 
     % Find optimal threshold over a limited range
-    range = linspace(0.35,0.65,61);
+    range = linspace(0.2,0.8,121);
     [x,y,t,~,opt] = perfcurve(data.labels, ...
         data.posteriors, 1, 'Prior','uniform','TVals',range);
     threshold = t(x==opt(1) & y==opt(2));
-    % threshold = 0.5;
+%     threshold = findThreshold(y,x,t);
+    threshold = 0.5;
 
     % Compute confusion metrics
     [tpr, tnr, acc] = printConfusionMatrix(data.labels, ...

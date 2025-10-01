@@ -56,8 +56,9 @@ try
                 %disp(first_index)
                 if (first_index >= 256) & (first_index <= 308) % 0.5 sec baseline, need 256 for decoder.baseline_idx to work correctly
                     label_value = stream.trigger(first_index);
+                    win = first_index + decoder.cfg.epochSamples;
 %                     fprintf('Label value at first_index (%d): %d\n', first_index, label_value);
-                    [ex_posterior, ~] = singleClassification(decoder, stream.eeg((first_index - 256):end, decoder.eegChannels));
+                    [ex_posterior, ~] = singleClassification(decoder, stream.eeg(win, decoder.eegChannels));
 %                     disp(['Time Frame: ' num2str(time_frame, '%.2f') ' Posteriors: ' num2str(ex_posterior, ' %.2f')]);
                     decoder.onlinePosteriors = [decoder.onlinePosteriors, ex_posterior];
                     stream.trigger(first_index) = 0;
