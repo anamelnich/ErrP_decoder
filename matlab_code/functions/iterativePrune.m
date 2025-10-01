@@ -68,9 +68,9 @@ for iter = 1:nIter
     range = linspace(0.2,0.8,121);
     [x,y,t,~,opt] = perfcurve(data.labels, ...
         data.posteriors, 1, 'Prior','uniform','TVals',range);
-    threshold = t(x==opt(1) & y==opt(2));
-%     threshold = findThreshold(y,x,t);
-    threshold = 0.5;
+%     threshold = t(x==opt(1) & y==opt(2));
+    threshold = findThreshold(y,x,t);
+%     threshold = 0.5;
 
     % Compute confusion metrics
     [tpr, tnr, acc] = printConfusionMatrix(data.labels, ...
